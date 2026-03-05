@@ -1,61 +1,50 @@
-# La Poderosa Biblioteca en Solana
+# Medical BlackBox: Immutable Web3 Ledger for IoT Healthcare
 
-![banner](./images/pb-banner.jpg)
+![Solana](https://img.shields.io/badge/Solana-362D59?style=for-the-badge&logo=solana&logoColor=white)
+![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
+![Anchor](https://img.shields.io/badge/Anchor-000000?style=for-the-badge&logo=anchor&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 
-CRUD básico de un Solana Program desarrollado con Rust y Anchor desde el Solana Playground. 
+Este repositorio contiene la infraestructura de Smart Contracts (Backend Web3) para un sistema de auditoría médica inmutable. 
 
-Puedes comenzar dándole Fork a este repositorio (abajo te explicamos como 👇), **hemos preparado un entorno de codespaces listo para que no tengas que instalar nada**, solo déjate llevar por la fluidez de los ejercicios y temas desarrollados especialmente para ti. 
+Este código es la implementación práctica y arquitectónica de la investigación publicada en el *Whitepaper*: **"Arquitectura Híbrida Pasiva para el Manejo de la Diabetes: Escisión Enzimática de Proinsulina in situ mediada por Telemetría NFC"**.
+ **Leer la publicación oficial (DOI):** [https://zenodo.org/records/18668319]
 
-Asegúrate de clonar este repositorio a tu cuenta usando el botón **`Fork`**.
+---
 
-![fork](./images/fork.png)
+## 🧠 El Problema: El "Dilema del Oráculo Médico"
+Cuando un dispositivo médico IoT (como una bomba de insulina o un páncreas artificial) falla, demostrar la responsabilidad legal es un desafío. Los historiales médicos tradicionales centralizados (Bases de Datos SQL, Excels) son susceptibles a manipulación post-incidente por parte de hospitales o fabricantes para evadir auditorías.
 
-## Importando el proyecto 
+## 💡 La Solución Web3
+**Medical BlackBox** utiliza la red de Solana para actuar como un notario público descentralizado. A través de este Smart Contract escrito en Rust (Anchor Framework), los signos vitales críticos (Glucosa e Insulina) se registran de forma inmutable, creando una línea de tiempo auditable y sellada criptográficamente.
 
-Ya con el repositorio en tu cuenta lo siguiente que debes hacer copiar el `enlace de tu repositorio`, lo que se puede hacer directamente desdel navegador:
+### 🏗️ Arquitectura y Modelo de Negocio (B2B2C)
+Este contrato no es un simple CRUD, está diseñado para resolver la fricción comercial de Web3 en el sector salud:
+1. **Transacciones Patrocinadas (`payer = aseguradora`):** Los pacientes no necesitan comprar criptomonedas (SOL) ni pagar "Gas/Rent". La red hospitalaria o aseguradora absorbe el costo de inicialización del expediente.
+2. **Propiedad Criptográfica del Paciente (`seeds`):** Aunque el hospital pague, la identidad de la "Caja Negra" se deriva matemáticamente (PDA - *Program Derived Address*) usando la Llave Pública del paciente. Ningún actor externo puede alterar el expediente sin la firma del dispositivo del paciente.
+3. **Escudos Clínicos (Custom Errors):** El contrato previene inyecciones de datos corruptos mediante validaciones de seguridad (`require!`), bloqueando dosis letales irreales o datos de glucosa en cero antes de que toquen la blockchain.
 
-![repo](./images/repo.png)
+---
 
-Posteriormente, lo uniremos con el siguiente enlace en nuestro navegador de preferencia:
+## ⚙️ Estructura del Smart Contract
 
-```url
-https://beta.solpg.io/
-```
+* **`InitializeRecord`**: Crea la cuenta PDA única del paciente.
+* **`LogVitals`**: Registra de forma inmutable los niveles de Glucosa (`u16`), la dosis de Insulina (`u16`) y captura la hora exacta descentralizada de los validadores de Solana (`Clock::get()?.unix_timestamp`).
+* **`MedicalRecord`**: Estructura de almacenamiento optimizada usando la macro `#[derive(InitSpace)]` para el cálculo automático de RAM.
 
-Lo que nos dará algo parecido a:
+---
 
-![url](./images/url.png)
+## 🚀 Cómo simular este proyecto (Solana Playground)
 
-Al pulsar enter seremos enviados al `Solana Playground` con nuestro proyecto abierto:
+Puedes interactuar con este Smart Contract directamente desde tu navegador sin instalar dependencias locales.
 
-![pg](./images/pg.png)
+1. Abre [Solana Playground (beta.solpg.io)](https://beta.solpg.io/).
+2. Copia el contenido de `src/lib.rs` en un nuevo proyecto de Anchor.
+3. Haz clic en el ícono de herramientas (Build & Deploy) en la barra lateral izquierda.
+4. Presiona **Build** y luego **Deploy** (SolPG te asignará Devnet SOL automáticamente).
+5. Copia el script de simulación `client.ts` de este repositorio en la carpeta `client` de SolPG.
+6. Ejecuta el comando `run` en la terminal para ver la "Bomba de Insulina" generar llaves al vuelo, registrar signos vitales y auditar la blockchain.
 
-Para guardarlo solo damos clic en el boton `import` y asignamos un nombre:
+---
 
-![import](./images/import.png)
-
-## Preparacion del entorno
-
-Primero conectaremos el entorno con la devnet, lo que tambien procederá a la creación de una wallet. Para eso daremos clic en donde dice **Not Conected**:
-
-![playground1](./images/playground1.png)
-
-Saldrá la siguiente ventana donde daremos en el botón **Continue**:
-
-![wallet](./images/wallet.png)
-
-Como resultado se mostrará la siguiente información:
-
-![status](./images/status.png)
-
-* En verde: el estado de la conexión y el entorno al que se encuentra conectado
-
-* En amarillo: la la dirección de la wallet conectada
-
-* En azul: la cantidad de tokens en la wallet
-
-> ℹ️ ¿Quieres ver el ejemplo de un "Hola Mundo" en Solana?. Da clic aquí: 👉 [Ver Ejemplo](https://github.com/WayLearnLatam/Solana-starter-kit/tree/1fc6349ba63375a3fe223d8d56911bc64765459b/build-deploy)
-
-> ℹ️ ¿Cuentas con una Wallet de [Phantom](https://phantom.com/) que deseas importar?, Da clic aquí para ver como hacerlo: 
-
-👉 [Como Importar una Wallet](https://github.com/WayLearnLatam/Solana-starter-kit/tree/1fc6349ba63375a3fe223d8d56911bc64765459b/import-key-a-playground)
+*Diseñado y programado por Johan Amezcua- Fusionando el pensamiento clínico con la ingeniería de software.*
