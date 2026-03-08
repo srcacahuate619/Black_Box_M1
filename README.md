@@ -8,7 +8,14 @@ Este repositorio contiene la infraestructura de Smart Contracts (Backend Web3) p
 
 Este código es la implementación técnica de la investigación publicada en el Whitepaper:  
 **"Arquitectura Descentralizada para la Telemetría Médica: M1-BlackBox como Registro Inmutable en Sistemas de Asa Cerrada y Bioseguridad."** 📖 **Leer la publicación oficial (DOI):** [https://zenodo.org/records/18905940](https://zenodo.org/records/18905940)
+---
 
+## 🔬 Evolución de la Investigación (Background)
+
+Este proyecto es la culminación técnica de una línea de investigación continua sobre bioseguridad en dispositivos médicos:
+
+* **Fase 1 (Conceptual):** [Arquitectura Híbrida Pasiva para el Manejo de la Diabetes](https://zenodo.org/records/18668319). En esta etapa se validó la factibilidad de la escisión de proinsulina mediante telemetría pasiva NFC (DOI: 10.5281/zenodo.18668319).
+* **Fase 2 (Actual):** **M1-BlackBox**. Evolución hacia una infraestructura descentralizada en Solana para garantizar la inmutabilidad y cumplimiento regulatorio FDA del sistema completo.
 ---
 
 ## 🧠 El Problema: El "Dilema del Oráculo Médico"
