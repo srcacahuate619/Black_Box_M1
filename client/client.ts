@@ -1,60 +1,83 @@
-//Bienvenidos a la "interfaz" de blackbox
-//mi wallet actual de playground actuará como la aseguradora (la que paga)
-const aseguradora = pg.wallet.keypair; 
-//generamos una wallet completamente nueva y aleatoria para simular a un paciente real
-const patient = new web3.Keypair(); 
-console.log("Iniciando simulación de la Caja Negra Médica...");
-console.log("Wallet Aseguradora:", aseguradora.publicKey.toString());
-console.log("Wallet Paciente:", patient.publicKey.toString());
-//encontramos la blackbox(el calculo del pda)
-const [medicalRecordPda, bump] = web3.PublicKey.findProgramAddressSync(
+// =================================================================
+// SIMULACIÓN CLÍNICA: M1-BlackBox (Cumplimiento FDA 524B)
+// =================================================================
+
+console.log("Iniciando pruebas clínicas de M1-BlackBox...");
+
+// 1️⃣ CREACIÓN DE IDENTIDADES (Wallets de simulación)
+// Generamos pacientes y médicos ficticios para la prueba
+const patient = web3.Keypair.generate();
+const doctor = web3.Keypair.generate(); // El médico autorizado por el hospital
+
+// 2️⃣ DERIVACIÓN DE LA PDA (El Expediente Inmutable)
+const [medicalRecordPda] = web3.PublicKey.findProgramAddressSync(
   [Buffer.from("blackbox"), patient.publicKey.toBuffer()],
   pg.program.programId
 );
-console.log("Dirección de la Caja Negra (PDA):", medicalRecordPda.toString());
-//envolveremos todo en una función asíncrona principal
-async function main() {
-  try {
-    //inicializar el expediente (la Aseguradora paga)
-    console.log("\n1️Creando el expediente médico en la blockchain...");
-    const txHashInit = await pg.program.methods
-      .initializeRecord()
-      .accounts({
-        medicalRecord: medicalRecordPda,
-        aseguradora: aseguradora.publicKey,
-        patient: patient.publicKey,
-        systemProgram: web3.SystemProgram.programId,
-      })
-      .signers([aseguradora, patient]) //ambos tienen que firmar
-      .rpc();
-    console.log("Expediente creado. Hash de transacción:", txHashInit);
-    //registrar signos(la Bomba de Insulina inyecta datos)
-    const glucosa = 120;  //mg/dL
-    const insulina = 5;   //unidades
-    console.log(`\n2️Registrando signos: Glucosa ${glucosa}, Insulina ${insulina}...`);
-    const txHashLog = await pg.program.methods
-      .logVitals(glucosa, insulina)
-      .accounts({
-        medicalRecord: medicalRecordPda,
-        patient: patient.publicKey,
-      })
-      .signers([patient]) //aquí solo firma el dispositivo del paciente
-      .rpc();
-    console.log("Datos registrados. Hash de transacción:", txHashLog);
-    //auditria clinica (leemos la blockchain para demostrar la inmutabilidad)
-    console.log("\nLeyendo la blockchain para confirmar los datos guardados...");
-    const record = await pg.program.account.medicalRecord.fetch(medicalRecordPda);
-    console.log("\nDATOS INMUTABLES GUARDADOS CON ÉXITO:");
-    console.log("- Dueño del Expediente:", record.patient.toString());
-    console.log("- Última Glucosa:", record.lastGlucose.toString(), "mg/dL");
-    console.log("- Última Insulina:", record.lastInsulin.toString(), "U");
-    console.log("- Total de registros:", record.totalLogs.toString());  
-    //convertimos el Timestamp de Solana (segundos) a una fecha legible
-    const fecha = new Date(record.lastTimestamp.toNumber() * 1000);
-    console.log("- Hora exacta (Descentralizada):", fecha.toLocaleString());
-  } catch (error) {
-    console.error("Ocurrió un error en la simulación:", error);
-  }
-}
-//ejecutar la simulación
-main();
+
+console.log("📄 PDA del Expediente derivado:", medicalRecordPda.toBase58());
+
+// =================================================================
+// PRUEBA 1: INICIALIZACIÓN SEGURA (Control de Acceso)
+// =================================================================
+const maxInsulinDose = 50; // Hard Cap: Ningún algoritmo puede inyectar más de 50 unidades
+
+console.log("\n1️⃣ Aseguradora inicializando expediente y validando firma médica...");
+const txInit = await pg.program.methods
+  .initializeRecord(maxInsulinDose)
+  .accounts({
+    medicalRecord: medicalRecordPda,
+    aseguradora: pg.wallet.publicKey, // Quien paga la transacción
+    patient: patient.publicKey,
+    doctor: doctor.publicKey,         // La llave pública del médico
+    systemProgram: web3.SystemProgram.programId,
+  })
+  .signers([doctor, patient]) // El médico autoriza y el paciente da consentimiento
+  .rpc();
+
+console.log("✅ Inicialización exitosa. Hash:", txInit);
+
+// =================================================================
+// PRUEBA 2: REGISTRO DE SIGNOS VITALES (Telemetría IoT)
+// =================================================================
+console.log("\n2️⃣ Dispositivo IoT registrando glucosa e inyectando insulina...");
+const glucose = 120;
+const insulin = 15; // Dosis segura (menor a 50)
+
+const txVitals = await pg.program.methods
+  .logVitals(glucose, insulin)
+  .accounts({
+    medicalRecord: medicalRecordPda,
+    patient: patient.publicKey, // Le pasamos el paciente para que valide la semilla
+  })
+  .rpc(); // Quitamos .signers() porque el dispositivo IoT "dispara" esto automáticamente
+
+console.log("✅ Signos vitales registrados en la blockchain. Hash:", txVitals);
+
+// =================================================================
+// PRUEBA 3: EL BOTÓN DE PÁNICO (Kill-Switch FDA)
+// =================================================================
+console.log("\n3️⃣ Simulando ataque cibernético... Médico activando Botón de Pánico 🛑");
+const txPause = await pg.program.methods
+  .emergencyPause()
+  .accounts({
+    medicalRecord: medicalRecordPda,
+    doctor: doctor.publicKey,
+  })
+  .signers([doctor]) // Solo el doctor dueño de la firma puede apagarlo
+  .rpc();
+
+console.log("✅ Dispositivo pausado de emergencia. Hash:", txPause);
+
+// =================================================================
+// VERIFICACIÓN: LECTURA DEL ESTADO ON-CHAIN
+// =================================================================
+console.log("\n--- LECTURA DEL ESTADO FINAL ON-CHAIN ---");
+const recordData = await pg.program.account.medicalRecord.fetch(medicalRecordPda);
+
+console.log("👤 Paciente:", recordData.patient.toBase58());
+console.log("👨‍⚕️ Médico Tratante:", recordData.doctor.toBase58());
+console.log("🛡️ Dosis Máxima Permitida (Hard Cap):", recordData.maxInsulinDose.toString(), "unidades");
+console.log("🩸 Última Glucosa:", recordData.lastGlucose.toString(), "mg/dL");
+console.log("💉 Última Insulina:", recordData.lastInsulin.toString(), "unidades");
+console.log("⚡ ¿Dispositivo Activo?:", recordData.isActive ? "SÍ 🟢" : "NO (Pausado por seguridad) 🔴");
